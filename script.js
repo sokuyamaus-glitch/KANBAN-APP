@@ -182,7 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ----------------------------------------------------
     renderApp();
     setupBackup();
-    setupViewSwitch();
+    //setupViewSwitch();
+    setupSidebarNavigation();
     setupShortcuts();
     setupAlertSettings();
     setupModalBackdropClicks();
@@ -192,11 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // ----------------------------------------------------
     // 基本イベントリスナー
     // ----------------------------------------------------
+    // アプリ設定、ユーザー管理、タグ管理はサイドバーから開くようになりました
+    document.getElementById('btn-app-settings-sidebar').addEventListener('click', () => toggleModal('modal-app-settings', true));
+    document.getElementById('btn-close-app-settings').addEventListener('click', () => {
+        toggleModal('modal-app-settings', false);
+        // 設定変更（テーマやアラート日数など）を即座に反映させるため再描画
+        renderApp(); 
+    });
+    document.getElementById('btn-user-mgmt-sidebar').addEventListener('click', openUserMgmt);
+    document.getElementById('btn-tag-mgmt-sidebar').addEventListener('click', openTagMgmt);
+    // ヘッダーのボード追加ボタン等はそのまま有効
     document.getElementById('btn-add-board').addEventListener('click', createNewBoard);
-    document.getElementById('btn-user-mgmt').addEventListener('click', openUserMgmt);
-    document.getElementById('btn-app-settings').addEventListener('click', () => toggleModal('modal-app-settings', true));
-    document.getElementById('btn-close-app-settings').addEventListener('click', () => toggleModal('modal-app-settings', false));
-
     // 共通タグ管理関連
     if (document.getElementById('btn-tag-mgmt')) document.getElementById('btn-tag-mgmt').addEventListener('click', openTagMgmt);
     if (document.getElementById('btn-close-tag-mgmt')) document.getElementById('btn-close-tag-mgmt').addEventListener('click', () => {
@@ -240,12 +247,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 検索関連
-    searchSettingsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        renderDynamicFilters();
-        searchPopover.classList.toggle('active');
+    // ----------------------------------------------------
+    // ▼ 検索設定ボタンのロジック修正（完全版）
+    // ----------------------------------------------------
+
+    // ※ searchPopover と searchSettingsBtn は既に上の方で const 定義されていますが、
+    //    念のためここで再取得しても問題ありませんし、既存の変数を使ってもOKです。
+    //    今回はわかりやすく、必要な要素をここでまとめて定義・取得します。
+
+    const popoverEl = document.getElementById('search-popover');
+    const mainBtn = document.getElementById('search-settings-btn');       // メイン画面のボタン
+    const archiveBtn = document.getElementById('archive-search-settings-btn'); // アーカイブ画面のボタン
+    
+    // メイン画面の検索バーのラッパー（ここがポップアップの「実家」です）
+    // ※HTML構造に依存するので、クラス名が正しいか確認してください
+    const mainSearchWrapper = document.querySelector('.header-left .search-wrapper');
+
+    // 1. メイン画面のボタン（実家に戻す処理）
+    if (mainBtn) {
+        // 既存のリスナーと重複しないよう、念のため古いリスナー削除はできませんが
+        // このブロックごと置き換えていれば問題ありません。
+        mainBtn.onclick = (e) => {
+            e.stopPropagation();
+            renderDynamicFilters(); // 最新の状態にする
+
+            // ★ここが修正ポイント: ポップアップを「実家」に連れ戻す
+            if (mainSearchWrapper && popoverEl.parentElement !== mainSearchWrapper) {
+                mainSearchWrapper.appendChild(popoverEl);
+            }
+
+            // スマート配置でついた座標スタイル（top, leftなど）を全消去して CSS 本来の配置に戻す
+            popoverEl.style.cssText = ''; 
+            
+            // クラスの付け替えだけで表示/非表示（CSSの absolute 配置に従う）
+            popoverEl.classList.toggle('active');
+        };
+    }
+
+    // 2. アーカイブ画面のボタン（出張させる処理）
+    if (archiveBtn) {
+        archiveBtn.onclick = (e) => {
+            e.stopPropagation();
+            renderDynamicFilters(); // 最新の状態にする
+
+            // ★スマートポップオーバー機能を使って、ボタンの近くに「出張」させる
+            // (この関数内で body への移動と座標計算が行われます)
+            toggleSmartPopover(archiveBtn, popoverEl);
+        };
+    }
+
+    // 3. 画面外クリックで閉じる処理（既存の処理を少し強化）
+    document.addEventListener('click', (e) => {
+        // ポップアップ内部や、開くボタンのクリックでなければ閉じる
+        if (!e.target.closest('.search-popover') &&
+            !e.target.closest('#search-settings-btn') &&
+            !e.target.closest('#archive-search-settings-btn')) {
+            
+            if (popoverEl) popoverEl.classList.remove('active');
+        }
     });
+
     searchInput.addEventListener('input', performSearch);
     document.getElementsByName('search-mode').forEach(radio => radio.addEventListener('change', (e) => {
         searchMode = e.target.value;
@@ -1208,8 +1269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ----------------------------------------------------
     // ★ Card Edit (詳細・編集モーダル) - 完全版
     // ----------------------------------------------------
-    function openCardEdit(bid, cardData) {
-        const board = appData.boards.find(b => b.id === bid);
+    // 第3引数 isArchive を追加 (デフォルトは false)
+    function openCardEdit(bid, cardData, isArchive = false) {
+        // ボード情報を取得（もしボードが削除されていたらエラー回避のためにダミーを入れる）
+        const board = appData.boards.find(b => b.id === bid) || { fields: [] };
         editingCardInfo = {
             boardId: bid,
             cardData
@@ -1229,6 +1292,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // ヘッダーボタンの初期化
         document.getElementById('btn-enable-edit').style.display = 'block';
         document.getElementById('btn-duplicate-card').style.display = 'block';
+        
+        // ★追加: アーカイブ時は「編集」「複製」ボタンを隠す（閲覧専用にする）
+        const displayStyle = isArchive ? 'none' : 'block';
+        document.getElementById('btn-enable-edit').style.display = displayStyle;
+        document.getElementById('btn-duplicate-card').style.display = displayStyle;
 
         // 2. 基本情報の表示 (閲覧用)
         document.getElementById('view-card-title').textContent = cardData.title;
@@ -1601,116 +1669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalCard.classList.add('active');
     }; // End of openCardEdit function
 
-    // --------------------------------------------------------------------------------
-    // 【注意】以下は元のコードに含まれていた重複ブロックです。
-    // 機能的には openCardEdit 内の処理と重複しており、この位置(グローバルスコープ)では
-    // 正常に動作しない可能性がありますが、元の記述通り整形して残しています。
-    // --------------------------------------------------------------------------------
-    // --- ✨ スマート・ペースト機能の実装 ---
-    const smartPasteBox = document.getElementById('smart-paste-box');
-
-    if (smartPasteBox) {
-        smartPasteBox.addEventListener('paste', (e) => {
-            // デフォルトの貼り付け動作を少し遅らせて、値を取得しやすくする（またはpreventDefaultしてデータ取得も可）
-            setTimeout(() => {
-                const text = smartPasteBox.value.trim();
-                if (!text) return;
-
-                // 1. URLかどうかを判定 (簡易的な正規表現)
-                const isUrl = /^(http|https):\/\/[^ "]+$/.test(text);
-
-                if (isUrl) {
-                    // URLの場合
-                    // タイトルが空ならURLをセット（後で変更可）
-                    const titleInput = document.getElementById('card-title');
-                    if (!titleInput.value) {
-                        titleInput.value = '新規リンク: ' + text;
-                    }
-
-                    // "url" タイプのカスタムフィールドを探して自動入力
-                    const {
-                        boardId
-                    } = editingCardInfo || {};
-                    if (boardId) {
-                        const board = appData.boards.find(b => b.id === boardId);
-                        // タイプが 'url' のフィールドを探す
-                        const urlField = board.fields.find(f => f.type === 'url');
-
-                        if (urlField) {
-                            // そのフィールドの入力欄（動的に生成されたDOM）を探す
-                            const wrapper = document.querySelector(`div[data-field-id="${urlField.id}"]`);
-                            const input = wrapper ? wrapper.querySelector('input') : null;
-                            if (input) {
-                                input.value = text;
-                                // 入力されたことを視覚的に知らせる（フラッシュ効果）
-                                input.classList.add('flash-highlight');
-                                setTimeout(() => input.classList.remove('flash-highlight'), 500);
-                            }
-                        }
-                    }
-                } else {
-                    // 通常テキストの場合
-                    // タイトルにセット
-                    const titleInput = document.getElementById('card-title');
-                    titleInput.value = text;
-                    titleInput.classList.add('flash-highlight');
-                    setTimeout(() => titleInput.classList.remove('flash-highlight'), 500);
-                }
-
-                // 入力ボックスをクリアして、完了演出
-                smartPasteBox.value = '';
-                smartPasteBox.placeholder = '✨ 貼り付け完了！';
-                setTimeout(() => {
-                    smartPasteBox.placeholder = 'ここにGmailの件名やURLを貼り付け (Ctrl+V)';
-                }, 2000);
-
-            }, 0);
-        });
-    }
-
-    // 保存ボタン (重複定義)
-    document.getElementById('card-save-btn').onclick = () => {
-        const {
-            boardId,
-            cardData
-        } = editingCardInfo;
-        cardData.title = document.getElementById('card-title').value;
-        cardData.date = document.getElementById('card-date').value;
-        if (!cardData.customValues) cardData.customValues = {};
-
-        const board = appData.boards.find(b => b.id === boardId);
-        board.fields.forEach(f => {
-            const wrapper = document.querySelector(`div[data-field-id="${f.id}"]`);
-            if (wrapper) {
-                if (f.type === 'select') {
-                    const con = wrapper.querySelector('.badge-select-container');
-                    if (con) cardData.customValues[f.id] = con.dataset.value;
-                } else if (f.type === 'checklist') {
-                    const el = wrapper.querySelector('.subtask-section');
-                    if (el && el.parentElement.querySelector('div').getValue) cardData.customValues[f.id] = el.parentElement.querySelector('div').getValue();
-                } else if (f.type === 'textarea') {
-                    const ta = wrapper.querySelector('textarea');
-                    if (ta) cardData.customValues[f.id] = ta.value;
-                } else {
-                    const inp = wrapper.querySelector('input, select');
-                    if (inp) cardData.customValues[f.id] = inp.value;
-                }
-            }
-        });
-        saveAll();
-        if (currentView === 'board') renderApp();
-        else renderFocusMode();
-        modalCard.classList.remove('active');
-        if (searchInput.value) performSearch();
-    };
-
-    modalCard.classList.add('active'); // この行もコンテキスト外ではエラーの可能性があります
-    // --------------------------------------------------------------------------------
-    // 重複ブロック終了
-    // --------------------------------------------------------------------------------
-
-
-    // その他カード操作ボタン
+        // その他カード操作ボタン
     document.getElementById('btn-duplicate-card').onclick = () => {
         if (!editingCardInfo) return;
         const {
@@ -1853,7 +1812,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 検索を実行して画面を更新
-        performSearch();
+        refreshCurrentView();
     };
 
     // 2. 「条件をクリア」関数を更新 (固定ボタンの色も消えるように修正)
@@ -1877,7 +1836,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDynamicFilters();
 
         // 検索実行（全表示に戻る）
-        performSearch();
+        refreshCurrentView();
     };
 
     window.toggleDynamicFilter = function(group, id) {
@@ -1885,96 +1844,173 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = activeFilters[group].indexOf(id);
         if (idx > -1) activeFilters[group].splice(idx, 1);
         else activeFilters[group].push(id);
-        performSearch();
-        renderDynamicFilters();
+        renderDynamicFilters(); // ボタンの見た目更新
+        refreshCurrentView();   // ← performSearch() から変更
     };
+    
+    /**
+     * 共通判定ロジック (Universal Matcher)
+     * カードデータが、検索クエリや現在のフィルタ条件に一致するかを判定します。
+     * @param {Object} data - カードデータ (title, date, customValues 等)
+     * @param {String} query - 検索ボックスの入力値 (小文字変換済みを推奨)
+     * @param {Object} filters - 現在アクティブなフィルター設定 (activeFilters)
+     * @returns {Boolean} - 表示すべきなら true
+     */
+    function checkCardMatch(data, query, filters) {
+        // 基準日の設定 (日付計算用)
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        now.setHours(0, 0, 0, 0);
 
+        // フィルタが有効かどうかのフラグ
+        const hasDateFilter = filters.overdue || filters.today || filters.week || filters.nodate;
+        const hasUserFilter = filters.users && filters.users.length > 0;
+        const hasTagFilter = filters.tags && filters.tags.length > 0;
+
+        // --- 1. キーワード検索 (AND条件) ---
+        if (query) {
+            // タイトルとカスタムフィールドの値を連結して検索対象にする
+            const text = (
+                data.title + ' ' + 
+                Object.values(data.customValues || {}).join(' ')
+            ).toLowerCase();
+            
+            if (!text.includes(query)) return false; // ヒットしなければ除外
+        }
+
+        // --- 2. 期日フィルタ (カテゴリ内は OR) ---
+        if (hasDateFilter) {
+            let dateHit = false;
+
+            // 期限なし
+            if (filters.nodate && !data.date) {
+                dateHit = true;
+            }
+            // 日付がある場合
+            else if (data.date) {
+                if (filters.overdue && data.date < todayStr) dateHit = true;
+                if (filters.today && data.date === todayStr) dateHit = true;
+                if (filters.week) {
+                    const d = new Date(data.date);
+                    d.setHours(0, 0, 0, 0);
+                    const diff = (d - now) / (1000 * 60 * 60 * 24);
+                    if (diff >= 0 && diff <= 7) dateHit = true;
+                }
+            }
+            
+            if (!dateHit) return false; // どの期間条件にも合致しなければ除外
+        }
+
+        // --- 3. 担当者フィルタ (カテゴリ内は OR) ---
+        if (hasUserFilter) {
+            const vals = Object.values(data.customValues || {});
+            // カードの値の中に、選択されたユーザーIDが含まれているか
+            const userHit = filters.users.some(id => vals.includes(id));
+            if (!userHit) return false;
+        }
+
+        // --- 4. タグ/その他フィルタ (カテゴリ内は OR) ---
+        if (hasTagFilter) {
+            const vals = Object.values(data.customValues || {});
+            const tagHit = filters.tags.some(id => vals.includes(id));
+            if (!tagHit) return false;
+        }
+
+        // 全ての関門を突破したら合格 (true)
+        return true;
+    }
     // ----------------------------------------------------
-    // ★ 検索ロジック修正: カテゴリ内はOR、カテゴリ間はAND
+    // ★ 検索ロジック
     // ----------------------------------------------------
+    // 既存の performSearch をこれに置き換え
     function performSearch() {
+        // 1. ボード用の検索ボックスの値を取得
         const query = searchInput.value.trim().toLowerCase();
         const cards = document.querySelectorAll('.card');
+        
+        // ... 既存の searchInput などの設定の後あたりに追加 ...
+        // ▼▼▼ アーカイブ検索バーの設定 ▼▼▼
+        const archiveSearchInput = document.getElementById('archive-search');
+        const archiveSettingsBtn = document.getElementById('archive-search-settings-btn');
 
-        // 日付計算用の基準日
-        const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
-        now.setHours(0, 0, 0, 0); // 時間をリセットして日数計算用にする
+        // 1. 入力時の検索実行
+        if (archiveSearchInput) {
+            archiveSearchInput.addEventListener('input', () => {
+                // 現在のビューがアーカイブなら再描画
+                if (currentView === 'archive') renderArchiveView();
+            });
+        }
 
-        // フィルタが有効かどうかを判定するフラグ
-        const hasDateFilter = activeFilters.overdue || activeFilters.today || activeFilters.week || activeFilters.nodate;
-        const hasUserFilter = activeFilters.users.length > 0;
-        const hasTagFilter = activeFilters.tags.length > 0;
-        const isFiltering = query || hasDateFilter || hasUserFilter || hasTagFilter;
+        // 2. 設定ボタンクリックで、メイン画面のポップアップを「借用」して表示
+        if (archiveSettingsBtn) {
+            archiveSettingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // 動的フィルターの中身を最新化
+                renderDynamicFilters();
+                
+                // ★重要: ボード画面にある #search-popover を取得
+                const popover = document.getElementById('search-popover');
+                
+                // ★既存の Smart Popover 機能を使って、このボタンの場所に表示！
+                toggleSmartPopover(archiveSettingsBtn, popover);
+            });
+        }
 
+        // フィルタリング中かどうかの判定 (UI装飾用)
+        const isFiltering = query || 
+            activeFilters.overdue || activeFilters.today || activeFilters.week || activeFilters.nodate ||
+            activeFilters.users.length > 0 || activeFilters.tags.length > 0;
+
+        // 2. DOM要素ループ
         cards.forEach(card => {
             const data = card._cardData;
             if (!data) return;
 
-            let matches = true; // 基本は表示（AND条件で絞っていく）
+            // ★ここで共通ロジック「checkCardMatch」を呼び出す！
+            const isMatch = checkCardMatch(data, query, activeFilters);
 
-            // 1. キーワード検索 (AND)
-            if (query) {
-                const text = (data.title + ' ' + Object.values(data.customValues || {}).join(' ')).toLowerCase();
-                if (!text.includes(query)) matches = false;
-            }
-
-            // 2. 期日フィルタ (カテゴリ内は OR)
-            if (matches && hasDateFilter) {
-                let dateHit = false; // どれか一つにヒットすればOK
-
-                // 期限なしチェック
-                if (activeFilters.nodate && !data.date) {
-                    dateHit = true;
-                }
-                // 日付がある場合のチェック
-                else if (data.date) {
-                    if (activeFilters.overdue && data.date < todayStr) dateHit = true;
-                    if (activeFilters.today && data.date === todayStr) dateHit = true;
-                    if (activeFilters.week) {
-                        const d = new Date(data.date);
-                        d.setHours(0, 0, 0, 0);
-                        const diff = (d - now) / (1000 * 60 * 60 * 24);
-                        if (diff >= 0 && diff <= 7) dateHit = true;
-                    }
-                }
-
-                // 期日フィルタが有効なのに、どれにもヒットしなかったら非表示
-                if (!dateHit) matches = false;
-            }
-
-            // 3. 担当者フィルタ (カテゴリ内は OR)
-            if (matches && hasUserFilter) {
-                const vals = Object.values(data.customValues || {});
-                // データ内の値に、選択したユーザーIDの「どれか一つ」でも含まれていればOK
-                const userHit = activeFilters.users.some(id => vals.includes(id));
-                if (!userHit) matches = false;
-            }
-
-            // 4. タグ/その他フィルタ (カテゴリ内は OR)
-            if (matches && hasTagFilter) {
-                const vals = Object.values(data.customValues || {});
-                // データ内の値に、選択したタグIDの「どれか一つ」でも含まれていればOK
-                const tagHit = activeFilters.tags.some(id => vals.includes(id));
-                if (!tagHit) matches = false;
-            }
-
-            // --- 表示の切り替え ---
+            // 3. 表示切り替え
             card.classList.remove('search-hidden', 'search-dimmed', 'search-highlight');
 
-            if (matches) {
-                // 検索中ならハイライト枠をつける
+            if (isMatch) {
                 if (isFiltering) card.classList.add('search-highlight');
             } else {
-                // 非表示モードなら消す、スポットライトなら薄くする
                 if (searchMode === 'filter') card.classList.add('search-hidden');
-                else card.classList.add('search-dimmed');
+                else card.classList.add('search-dimmed'); // スポットライトモード
             }
-        });
+    });
 
-        // 検索ボタンに「・」をつけるかどうか更新
-        searchSettingsBtn.classList.toggle('has-filter', isFiltering);
+    // 検索ボタンの装飾更新
+    if(searchSettingsBtn) searchSettingsBtn.classList.toggle('has-filter', isFiltering);
     }
+
+    // ★ 現在表示中のビューに合わせて再描画するヘルパー関数
+    function refreshCurrentView() {
+        if (currentView === 'board') {
+            performSearch();
+        } else if (currentView === 'archive') {
+            renderArchiveView();
+        }
+        // ボタンの「・(ドット)」の表示更新
+        updateFilterButtonState();
+    }
+
+    // ★ 設定ボタンの見た目（赤ポチ）を更新する関数
+    function updateFilterButtonState() {
+        const hasFilter = 
+            activeFilters.overdue || activeFilters.today || activeFilters.week || activeFilters.nodate ||
+            activeFilters.users.length > 0 || activeFilters.tags.length > 0;
+
+        // ボード画面のボタン
+        const boardBtn = document.getElementById('search-settings-btn');
+        if(boardBtn) boardBtn.classList.toggle('has-filter', hasFilter);
+
+        // アーカイブ画面のボタン
+        const archiveBtn = document.getElementById('archive-search-settings-btn');
+        if(archiveBtn) archiveBtn.classList.toggle('has-filter', hasFilter);
+    }
+        
 
     // ----------------------------------------------------
     // ★ ユーザー管理ロジック V3 (View/Edit Switching)
@@ -2393,80 +2429,149 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ----------------------------------------------------
-    // ★ Archive View (アーカイブ画面) - 機能拡張版
+    // ★ Archive View (アーカイブ画面) - エンリッチ版
     // ----------------------------------------------------
+    // 既存の renderArchiveView をこれに置き換え（または中身を修正）
     function renderArchiveView() {
         const container = document.getElementById('archive-list');
-        const searchInput = document.getElementById('archive-search');
-        const query = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        // ★重要: アーカイブ画面専用の検索ボックスの値を取得
+        const archiveInput = document.getElementById('archive-search');
+        const query = archiveInput ? archiveInput.value.trim().toLowerCase() : '';
 
         container.innerHTML = '';
 
-        // 検索フィルタリング と 並び替え（新しい順）
-        const filteredArchive = appData.archive.filter(item => {
-            return !query || item.title.toLowerCase().includes(query);
-        }).slice().reverse();
-
+        // --- フィルタリング処理 ---
+        // ここで共通ロジック「checkCardMatch」を使って配列を絞り込む
+        const filteredArchive = appData.archive.filter(cardData => {
+            // アーカイブ固有の「query」と、共通の「activeFilters」を渡す
+            return checkCardMatch(cardData, query, activeFilters);
+        });
+        
+        // 並び替え（新しい順）
+        const displayList = filteredArchive.slice().reverse();
         if (filteredArchive.length === 0) {
             container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#9ca3af; padding:40px;">アーカイブされた項目はありません</div>';
             return;
         }
 
-        filteredArchive.forEach((item, idx) => {
-            const card = document.createElement('div');
-            card.className = 'archive-card';
+        filteredArchive.forEach((cardData, idx) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'archive-card';
 
+            // --- 1. 出自（ボード・列）情報の取得 ---
+            // ※ボードが削除されている可能性も考慮して安全に取得
+            const board = appData.boards.find(b => b.id === cardData.originalBoardId) || { title: '不明なボード', color: '#ccc', fields: [] };
+            // 列名の特定（今のボード設定から探す）
+            const colName = board.columns ? (board.columns.find(c => c.id === cardData.originalColumnId)?.name || '完了') : '---';
+            
             // 日付フォーマット
-            const dateStr = item.archivedAt ? new Date(item.archivedAt).toLocaleDateString() : '---';
+            const archivedDate = cardData.archivedAt ? new Date(cardData.archivedAt).toLocaleDateString() : '---';
+            const dueDate = cardData.date ? `<span style="color:${cardData.date < new Date().toISOString().slice(0,10) ? '#EF4444' : 'inherit'}">📅 ${cardData.date}</span>` : '';
 
-            card.innerHTML = `
-                <div style="font-weight:bold; font-size:14px; margin-bottom:8px; line-height:1.4;">${item.title}</div>
-                <div class="archive-date">保管日: ${dateStr}</div>
-                <div style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
+            // --- 2. バッジ（カスタムフィールド）の生成 ---
+            let badgesHtml = '';
+            if (board.fields && cardData.customValues) {
+                board.fields.forEach(f => {
+                    const val = cardData.customValues[f.id];
+                    if (!val) return;
+
+                    // 選択肢 (Priorityなど)
+                    if (f.type === 'select' && f.options) {
+                        const opt = f.options.find(o => o.id === val);
+                        if (opt) badgesHtml += `<span class="mini-badge" style="background:${opt.color}">${opt.name}</span>`;
+                    }
+                    // ユーザー
+                    else if (f.type === 'user') {
+                        const u = appData.users.find(user => user.id === val);
+                        if (u) badgesHtml += `<span class="mini-badge user" style="background:${u.color}">${u.name.charAt(0)}</span>`;
+                    }
+                    // 共通タグ
+                    else if (f.type === 'tags' && f.groupId) {
+                         const group = appData.tagGroups.find(g => g.id === f.groupId);
+                         if(group) {
+                             const t = group.tags.find(tag => tag.id === val);
+                             if(t) badgesHtml += `<span class="mini-badge" style="background:${t.color}">${t.name}</span>`;
+                         }
+                    }
+                });
+            }
+
+            // --- 3. HTML組み立て ---
+            cardEl.innerHTML = `
+                <div class="archive-header">
+                    <span class="archive-board-label" style="border-left: 3px solid ${board.color};">
+                        ${board.title} <span style="opacity:0.5; font-weight:normal;">&gt; ${colName}</span>
+                    </span>
+                    <span class="archive-date">${archivedDate} 保管</span>
+                </div>
+                
+                <div class="archive-title">${cardData.title}</div>
+                
+                <div class="archive-meta">
+                    <div class="archive-badges">${badgesHtml}</div>
+                    <div class="archive-due">${dueDate}</div>
+                </div>
+
+                <div class="archive-footer">
                     <button class="btn btn-outline btn-sm btn-restore">復元</button>
-                    <button class="btn btn-danger btn-sm btn-delete">削除</button>
+                    <button class="btn btn-icon-sm btn-delete" title="完全削除"><span class="material-symbols-outlined" style="font-size:16px;">delete</span></button>
                 </div>
             `;
+            // ★追加: カード全体をクリックしたら詳細モーダルを開く
+            // (ボタン類をクリックしたときは反応しないようにガードする)
+            cardEl.addEventListener('click', (e) => {
+                // 削除・復元ボタンを押したときはモーダルを開かない
+                if (e.target.closest('button')) return;
+                
+                // 詳細モーダルを「アーカイブモード(true)」で開く
+                openCardEdit(cardData.originalBoardId, cardData, true);
+            });
 
-            // 復元ボタン (現在のボードの最初の列に戻す簡易実装)
-            card.querySelector('.btn-restore').onclick = () => {
-                if (confirm('メインボードに復元しますか？')) {
-                    // アーカイブから削除
-                    // (元配列のインデックスを探す必要があるため、filter前の配列から削除)
-                    const realIdx = appData.archive.indexOf(item);
-                    if (realIdx > -1) appData.archive.splice(realIdx, 1);
+            // 復元ボタン
+            cardEl.querySelector('.btn-restore').onclick = () => {
+                if (confirm('ボードに復元しますか？')) {
+                    // 元のボード・列が生きていればそこへ、なければ先頭へ
+                    let targetBoard = appData.boards.find(b => b.id === cardData.originalBoardId);
+                    let targetColId = cardData.originalColumnId;
+                    
+                    if (!targetBoard) { targetBoard = appData.boards[0]; targetColId = null; }
+                    
+                    if (targetBoard) {
+                        // 列が存在するか確認
+                        if (!targetColId || !targetBoard.columns.find(c => c.id === targetColId)) {
+                            targetColId = targetBoard.columns[0].id;
+                        }
 
-                    // 復元先: 最初のボードの最初の列
-                    const targetBoard = appData.boards[0];
-                    if (targetBoard && targetBoard.columns.length > 0) {
-                        const targetCol = targetBoard.columns[0].id;
-                        if (!targetBoard.cards[targetCol]) targetBoard.cards[targetCol] = [];
+                        // データ掃除
+                        delete cardData.archivedAt;
+                        
+                        if(!targetBoard.cards[targetColId]) targetBoard.cards[targetColId] = [];
+                        targetBoard.cards[targetColId].push(cardData);
+                        
+                        // アーカイブから削除
+                        // (注意: filter後の配列で回しているので、元配列からID等で探して消すのが安全ですが、今回は簡易的にオブジェクト一致で削除)
+                        const realIdx = appData.archive.indexOf(cardData);
+                        if (realIdx > -1) appData.archive.splice(realIdx, 1);
 
-                        // データ調整（アーカイブ情報を消すなど）
-                        delete item.archivedAt;
-                        item.isToday = false;
-
-                        targetBoard.cards[targetCol].push(item);
-                        alert(`ボード「${targetBoard.title}」の「${targetBoard.columns[0].name}」列に復元しました。`);
-                    } else {
-                        alert('復元先のボードが見つかりませんでした。');
+                        saveAll();
+                        renderArchiveView();
+                        alert('復元しました');
                     }
-                    saveAll();
-                    renderArchiveView();
                 }
             };
 
-            // 完全削除ボタン
-            card.querySelector('.btn-delete').onclick = () => {
-                if (confirm('完全に削除しますか？\nこの操作は取り消せません。')) {
-                    const realIdx = appData.archive.indexOf(item);
+            // 削除ボタン
+            cardEl.querySelector('.btn-delete').onclick = () => {
+                if (confirm('完全に削除しますか？')) {
+                    const realIdx = appData.archive.indexOf(cardData);
                     if (realIdx > -1) appData.archive.splice(realIdx, 1);
                     saveAll();
                     renderArchiveView();
                 }
             };
 
-            container.appendChild(card);
+            container.appendChild(cardEl);
         });
     }
 
@@ -2510,10 +2615,44 @@ document.addEventListener('DOMContentLoaded', () => {
         // メニューの中身をタイプによって出し分ける
         const archiveBtn = document.getElementById('ctx-archive-col');
         if (archiveBtn) {
-            // 'column' の時だけ「アーカイブ」ボタンを表示する
-            archiveBtn.style.display = (type === 'column') ? 'flex' : 'none';
-        }
+            const isColumn = (type === 'column');
+            archiveBtn.style.display = isColumn ? 'flex' : 'none';
 
+            // ★追加: アーカイブボタンのクリック処理
+            if (isColumn) {
+                archiveBtn.onclick = () => {
+                    const col = activeContextMenu.target;
+                    // 確認メッセージ
+                    if (confirm(`列「${col.name}」にある全てのタスクをアーカイブ（完了倉庫へ移動）しますか？\n※列自体は残ります。`)) {
+                        // 1. 親ボードを探す
+                        const board = appData.boards.find(b => b.columns.some(c => c.id === col.id));
+                        if (board) {
+                            const cards = board.cards[col.id] || [];
+                            
+                            // 2. カードをアーカイブへ移動
+                            const now = new Date().toISOString();
+                            cards.forEach(card => {
+                                card.archivedAt = now;
+                                card.isToday = false; // 今日やるフラグは外す
+                                // ★追加: 元のボードIDと列IDを記録しておく（重要！）
+                                card.originalBoardId = board.id;
+                                card.originalColumnId = col.id;
+                                appData.archive.push(card);
+                            });
+
+                            // 3. 元の列を空にする
+                            board.cards[col.id] = [];
+
+                            // 4. 保存して再描画
+                            saveAll();
+                            activeContextMenu.cb(); 
+                            menu.style.display = 'none';
+                            alert('アーカイブしました。');
+                        }
+                    }
+                };
+            }
+        }
         // 表示位置の計算
         menu.style.display = 'block';
         const rect = menu.getBoundingClientRect();
@@ -2794,20 +2933,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const k = e.key.toLowerCase();
 
             if (k === s.toFocus) {
-                // 今日の実行へ
-                const btn = document.getElementById('btn-go-focus');
-                if (btn) btn.click();
+                window.switchView('focus');
             } else if (k === s.toBoard) {
-                // メインボードへ戻る（現在の画面に応じてボタンを押し分ける）
-                if (appSlider.classList.contains('show-focus')) {
-                    document.getElementById('btn-back-from-focus').click();
-                } else if (appSlider.classList.contains('show-archive')) {
-                    document.getElementById('btn-back-from-archive').click();
-                }
+                window.switchView('board');
             } else if (k === s.toArchive) {
-                // アーカイブへ
-                const btn = document.getElementById('btn-go-archive');
-                if (btn) btn.click();
+                window.switchView('archive');
             } else if (k === s.search) {
                 // 検索窓にフォーカス
                 e.preventDefault(); // '/'などが入力されないようにする
@@ -3108,6 +3238,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+    }
+    // ----------------------------------------------------
+    // ★ サイドバー & ビュー切り替えロジック (修正版)
+    // ----------------------------------------------------
+    function setupSidebarNavigation() {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('btn-toggle-sidebar');
+        const logoArea = document.querySelector('.logo-area');
+
+        // 1. 折りたたみトグル
+        const toggleSidebar = () => {
+            sidebar.classList.toggle('collapsed');
+            const icon = toggleBtn.querySelector('span');
+            // 折りたたみ状態に合わせてアイコンを変更
+            icon.textContent = sidebar.classList.contains('collapsed') ? 'menu' : 'menu_open';
+        };
+        toggleBtn.onclick = toggleSidebar;
+        
+        logoArea.onclick = () => {
+            if(sidebar.classList.contains('collapsed')) toggleSidebar();
+        };
+
+        // 2. ビュー切り替え (Focus / Board / Archive)
+        const navBtns = document.querySelectorAll('.sidebar-menu .sidebar-btn');
+        const panels = document.querySelectorAll('.view-panel');
+
+        const switchView = (viewName) => {
+            // 状態変数を更新
+            currentView = viewName;
+
+            // ボタンの見た目更新
+            navBtns.forEach(btn => {
+                // dataset.view が一致するものに active を付与
+                if(btn.dataset.view === viewName) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            // パネルの表示切り替え
+            panels.forEach(panel => {
+                panel.classList.remove('active');
+            });
+            const targetPanel = document.getElementById(`view-${viewName}`);
+            if(targetPanel) {
+                targetPanel.classList.add('active');
+                // ★追加修正: 画面を切り替えたらスクロールを一番上に戻す
+                targetPanel.scrollTop = 0;
+            }
+
+            // 各ビューに応じたデータの再描画を実行
+            if(viewName === 'focus') renderFocusMode();
+            else if(viewName === 'archive') renderArchiveView();
+            else if(viewName === 'board') renderApp();
+        };
+
+        // クリックイベント登録
+        navBtns.forEach(btn => {
+            btn.onclick = () => switchView(btn.dataset.view);
+        });
+
+        // グローバル化
+        window.switchView = switchView; 
+        
+        // ★重要: 初期表示の同期
+        // HTMLで board を active にしたので、JS側も board で初期化します
+        switchView('board');
     }
 
 }); // End of DOMContentLoaded (Correctly moved to the end)

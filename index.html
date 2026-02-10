@@ -3,30 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>進捗管理かんばんボード (V26.0 - Restore)</title>
+    <title>進捗管理かんばんボード (β-1)</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+    <div class="app-layout">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-area">
+                    <span class="material-symbols-outlined logo-icon">dashboard</span>
+                    <span class="logo-text">MinebeaMitsumi</span>
+                </div>
+                <button class="sidebar-toggle-btn" id="btn-toggle-sidebar">
+                    <span class="material-symbols-outlined">menu_open</span>
+                </button>
+            </div>
 
-    <div class="app-container">
-        <div id="app-slider" class="app-slider">
+            <div class="sidebar-menu">
+                <button class="sidebar-btn active" data-view="board">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span class="link-text">ボード</span>
+                </button>
+                <button class="sidebar-btn" data-view="focus">
+                    <span class="material-symbols-outlined">rocket_launch</span>
+                    <span class="link-text">今日の実行</span>
+                </button>
+                                <button class="sidebar-btn" data-view="archive">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <span class="link-text">アーカイブ</span>
+                </button>
+            </div>
 
-            <div class="slide-view view-focus">
+            <div class="sidebar-footer">
+                <div class="sidebar-divider"></div>
+                <button class="sidebar-btn" id="btn-user-mgmt-sidebar">
+                    <span class="material-symbols-outlined">manage_accounts</span>
+                    <span class="link-text">ユーザー</span>
+                </button>
+                <button class="sidebar-btn" id="btn-tag-mgmt-sidebar">
+                    <span class="material-symbols-outlined">label</span>
+                    <span class="link-text">タグ管理</span>
+                </button>
+                <button class="sidebar-btn" id="btn-app-settings-sidebar">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span class="link-text">設定</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            
+            <div id="view-focus" class="view-panel">
                 <div class="focus-header">
                     <h2><span class="material-symbols-outlined" style="vertical-align: middle;font-size: 32px;">rocket_launch</span> 今日の実行</h2>
-                    
                     <div class="digital-clock-widget">
                         <div id="focus-date" class="clock-date">--/-- (--)</div>
                         <div id="focus-time" class="clock-time">00:00</div>
                     </div>
-
-                    <button class="btn btn-primary" id="btn-back-from-focus">
-                        メインボード <span class="material-symbols-outlined" style="font-size:16px; vertical-align:middle;">arrow_forward</span>
-                    </button>
-                </div>
+                    </div>
                 <div class="focus-content">
                     <div class="focus-stack-area">
                         <p style="text-align:center; font-size:12px; color:#666;">優先度順に片付けましょう</p>
@@ -44,13 +81,10 @@
                 </div>
             </div>
 
-            <div class="slide-view view-board">
+            <div id="view-board" class="view-panel active">
                 <header>
                     <div class="header-left">
-                        <button class="btn btn-outline" id="btn-go-focus" style="margin-right:15px; display:flex; align-items:center; gap:5px;">
-                            <span class="material-symbols-outlined" style="font-size:18px;">rocket_launch</span> ←今日やる
-                        </button>
-                        <h1>進捗ボード α-1</h1>
+                        <h1>進捗ボード β-1</h1>
                         <div class="search-wrapper" style="margin-left: 20px;">
                             <div class="search-box">
                                 <span class="material-symbols-outlined" style="margin-right: 5px; color:#666;">search</span>
@@ -71,18 +105,10 @@
                                 <div class="filter-section">
                                     <span class="filter-label">期限 (Time)</span>
                                     <div class="filter-chips">
-                                        <div class="filter-btn" data-type="overdue" onclick="toggleFilter('overdue'); event.stopPropagation()">
-                                            <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">local_fire_department</span> 期限切れ
-                                        </div>
-                                        <div class="filter-btn" data-type="today" onclick="toggleFilter('today'); event.stopPropagation()">
-                                            <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">today</span> 今日
-                                        </div>
-                                        <div class="filter-btn" data-type="week" onclick="toggleFilter('week'); event.stopPropagation()">
-                                            <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">date_range</span> 今週
-                                        </div>
-                                        <div class="filter-btn" data-type="nodate" onclick="toggleFilter('nodate'); event.stopPropagation()">
-                                            <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">event_busy</span> 期限なし
-                                        </div>
+                                        <div class="filter-btn" data-type="overdue" onclick="toggleFilter('overdue'); event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">local_fire_department</span> 期限切れ</div>
+                                        <div class="filter-btn" data-type="today" onclick="toggleFilter('today'); event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">today</span> 今日</div>
+                                        <div class="filter-btn" data-type="week" onclick="toggleFilter('week'); event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">date_range</span> 今週</div>
+                                        <div class="filter-btn" data-type="nodate" onclick="toggleFilter('nodate'); event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">event_busy</span> 期限なし</div>
                                     </div>
                                 </div>
                                 <div class="filter-section" id="dynamic-filters-area"></div>
@@ -94,29 +120,19 @@
                     </div>
 
                     <div class="header-controls">
-                        <button class="btn btn-secondary" id="btn-app-settings" style="margin-right:10px; display:flex; align-items:center;">
-                            <span class="material-symbols-outlined">menu</span>
-                        </button>
                         <button class="btn btn-secondary" id="btn-reorder-boards" style="margin-right:10px; display:flex; align-items:center;" title="ボードの並び替え">
                             <span class="material-symbols-outlined">sort</span>
                         </button>
                         <button class="btn btn-primary" id="btn-add-board" style="margin-right:15px; display:flex; align-items:center; gap:5px;">
                             <span class="material-symbols-outlined" style="font-size:18px;">add</span> ボード
                         </button>
-                        
-                        <button class="btn btn-outline" id="btn-go-archive" style="display:flex; align-items:center; gap:5px;">
-                            <span class="material-symbols-outlined" style="font-size:18px;">inventory_2</span> アーカイブ →
-                        </button>
-                    </div>
+                        </div>
                 </header>
                 <div id="boards-app"></div>
             </div>
 
-            <div class="slide-view view-archive">
+            <div id="view-archive" class="view-panel">
                 <div class="focus-header"> 
-                    <button class="btn btn-primary" id="btn-back-from-archive" style="display:flex; align-items:center; gap:5px;">
-                        <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> メインボード
-                    </button>
                     <h2 style="display:flex; align-items:center; gap:10px;">
                         <span class="material-symbols-outlined" style="font-size:28px;">inventory_2</span> 完了タスク倉庫
                     </h2>
@@ -124,185 +140,79 @@
                 <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                         <p style="color:#666;">過去に完了したタスクの履歴です。</p>
-                        <input type="text" id="archive-search" class="form-control" style="width:200px;" placeholder="アーカイブ内検索...">
-                    </div>
+                        
+                        <div class="search-wrapper">
+                            <div class="search-box">
+                                <span class="material-symbols-outlined" style="margin-right: 5px; color:#666;">search</span>
+                                <input type="text" class="search-input" id="archive-search" placeholder="アーカイブ検索...">
+                                <button class="search-settings-btn" id="archive-search-settings-btn">
+                                    <span class="material-symbols-outlined" style="font-size:18px;">tune</span>
+                                </button>
+                            </div>
+                            </div>
+                        </div>
                     <div id="archive-list" class="archive-list-container"></div>
                 </div>
             </div>
 
-        </div> 
+        </main>
     </div>
 
     <div id="context-menu">
-        <div class="ctx-item" id="ctx-rename">
-            <span class="material-symbols-outlined" style="font-size:16px;">edit</span> 名前を変更
-        </div>
-        <div class="ctx-item" id="ctx-archive-col" style="color:#EF4444;">
-            <span class="material-symbols-outlined" style="font-size:16px;">archive</span> この列をアーカイブ
-        </div>
+        <div class="ctx-item" id="ctx-rename"><span class="material-symbols-outlined" style="font-size:16px;">edit</span> 名前を変更</div>
+        <div class="ctx-item" id="ctx-archive-col" style="color:#EF4444;"><span class="material-symbols-outlined" style="font-size:16px;">archive</span> この列をアーカイブ</div>
         <div class="ctx-divider"></div>
-        <div style="padding: 4px 16px; font-size: 11px; color: #888; display:flex; align-items:center; gap:4px;">
-            <span class="material-symbols-outlined" style="font-size:14px;">palette</span> 色を選択
-        </div>
+        <div style="padding: 4px 16px; font-size: 11px; color: #888; display:flex; align-items:center; gap:4px;"><span class="material-symbols-outlined" style="font-size:14px;">palette</span> 色を選択</div>
         <div class="color-grid" id="ctx-color-grid"></div>
     </div>
 
     <div class="modal-overlay" id="modal-app-settings">
         <div class="settings-modal-container" onclick="event.stopPropagation()">
-            
             <div class="settings-modal-header">
                 <h2 class="settings-modal-title">アプリ全体設定</h2>
-                <button class="settings-close-btn" id="btn-close-app-settings">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+                <button class="settings-close-btn" id="btn-close-app-settings"><span class="material-symbols-outlined">close</span></button>
             </div>
-
             <div class="settings-modal-body-wrapper">
                 <nav class="settings-sidebar">
-                    <a class="settings-nav-item active" href="#sec-general">
-                        <span class="material-symbols-outlined">tune</span> 一般設定
-                    </a>
-                    <a class="settings-nav-item" href="#sec-data">
-                        <span class="material-symbols-outlined">storage</span> データ・管理
-                    </a>
-                    <a class="settings-nav-item" href="#sec-alert">
-                        <span class="material-symbols-outlined">notifications</span> 通知・アラート
-                    </a>
-                    <a class="settings-nav-item" href="#sec-shortcut">
-                        <span class="material-symbols-outlined">keyboard</span> ショートカット
-                    </a>
+                    <a class="settings-nav-item active" href="#sec-general"><span class="material-symbols-outlined">tune</span> 一般設定</a>
+                    <a class="settings-nav-item" href="#sec-data"><span class="material-symbols-outlined">storage</span> データ・管理</a>
+                    <a class="settings-nav-item" href="#sec-alert"><span class="material-symbols-outlined">notifications</span> 通知・アラート</a>
+                    <a class="settings-nav-item" href="#sec-shortcut"><span class="material-symbols-outlined">keyboard</span> ショートカット</a>
                 </nav>
-
                 <main class="settings-main-content custom-scrollbar">
-                    
                     <section class="settings-section" id="sec-general">
-                        <div class="section-header">
-                            <span class="material-symbols-outlined icon-pink">palette</span>
-                            <h3>カラーテーマ</h3>
-                        </div>
+                        <div class="section-header"><span class="material-symbols-outlined icon-pink">palette</span><h3>カラーテーマ</h3></div>
                         <div class="theme-grid">
-                            <div class="theme-card-option" onclick="changeTheme('light')">
-                                <div class="theme-card-inner">
-                                    <div class="theme-circle color-light"></div>
-                                    <span class="theme-label">標準</span>
-                                    <span class="material-symbols-outlined check-mark">check_circle</span>
-                                </div>
-                            </div>
-                            <div class="theme-card-option" onclick="changeTheme('dark')">
-                                <div class="theme-card-inner">
-                                    <div class="theme-circle color-dark"></div>
-                                    <span class="theme-label">ダーク</span>
-                                </div>
-                            </div>
-                            <div class="theme-card-option" onclick="changeTheme('sakura')">
-                                <div class="theme-card-inner">
-                                    <div class="theme-circle color-sakura"></div>
-                                    <span class="theme-label">サクラ</span>
-                                </div>
-                            </div>
+                            <div class="theme-card-option" onclick="changeTheme('light')"><div class="theme-card-inner"><div class="theme-circle color-light"></div><span class="theme-label">標準</span></div></div>
+                            <div class="theme-card-option" onclick="changeTheme('dark')"><div class="theme-card-inner"><div class="theme-circle color-dark"></div><span class="theme-label">ダーク</span></div></div>
+                            <div class="theme-card-option" onclick="changeTheme('sakura')"><div class="theme-card-inner"><div class="theme-circle color-sakura"></div><span class="theme-label">サクラ</span></div></div>
                         </div>
                     </section>
-
                     <hr class="settings-divider"/>
-
                     <section class="settings-section" id="sec-data">
-                        <div class="section-header">
-                            <span class="material-symbols-outlined icon-blue">settings_applications</span>
-                            <h3>データ・管理</h3>
-                        </div>
-                        <div class="data-mgmt-grid">
-                            <button id="btn-user-mgmt" class="mgmt-btn">
-                                <div class="btn-content">
-                                    <span class="material-symbols-outlined icon-gray">people</span>
-                                    <span>ユーザー管理を開く</span>
-                                </div>
-                                <span class="material-symbols-outlined icon-sm">open_in_new</span>
-                            </button>
-                            <button id="btn-tag-mgmt" class="mgmt-btn">
-                                <div class="btn-content">
-                                    <span class="material-symbols-outlined icon-gray">label</span>
-                                    <span>共通タグ管理を開く</span>
-                                </div>
-                                <span class="material-symbols-outlined icon-sm">open_in_new</span>
-                            </button>
-                        </div>
-                        
+                        <div class="section-header"><span class="material-symbols-outlined icon-blue">settings_applications</span><h3>データ・管理</h3></div>
                         <div class="backup-grid">
                             <input type="file" id="file-input" style="display: none;" accept=".json">
-                            <button id="btn-export" class="backup-btn export">
-                                <span class="material-symbols-outlined icon-lg">download</span>
-                                <span class="btn-title">保存 (Export)</span>
-                                <span class="btn-desc">JSON形式でバックアップ</span>
-                            </button>
-                            <button id="btn-import" class="backup-btn import">
-                                <span class="material-symbols-outlined icon-lg">upload</span>
-                                <span class="btn-title">復元 (Import)</span>
-                                <span class="btn-desc">バックアップファイルを選択</span>
-                            </button>
+                            <button id="btn-export" class="backup-btn export"><span class="material-symbols-outlined icon-lg">download</span><span class="btn-title">保存 (Export)</span></button>
+                            <button id="btn-import" class="backup-btn import"><span class="material-symbols-outlined icon-lg">upload</span><span class="btn-title">復元 (Import)</span></button>
                         </div>
                     </section>
-
                     <hr class="settings-divider"/>
-
                     <section class="settings-section" id="sec-alert">
-                        <div class="section-header">
-                            <span class="material-symbols-outlined icon-amber">warning</span>
-                            <h3>期限アラート (Pilot Light)</h3>
-                        </div>
+                        <div class="section-header"><span class="material-symbols-outlined icon-amber">warning</span><h3>期限アラート (Pilot Light)</h3></div>
                         <div class="alert-settings-box">
-                            <div class="alert-toggle-row">
-                                <label for="setting-alert-toggle">期限アラート機能を有効にする</label>
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="setting-alert-toggle">
-                                    <label for="setting-alert-toggle" class="toggle-slider"></label>
-                                </div>
-                            </div>
-                            <div class="alert-days-row">
-                                <span>期限の</span>
-                                <input type="number" id="setting-alert-days" value="3" min="0">
-                                <span>日前から黄色 (Warning) で表示する</span>
-                            </div>
+                            <div class="alert-toggle-row"><label for="setting-alert-toggle">期限アラート機能を有効にする</label><div class="toggle-switch"><input type="checkbox" id="setting-alert-toggle"><label for="setting-alert-toggle" class="toggle-slider"></label></div></div>
+                            <div class="alert-days-row"><span>期限の</span><input type="number" id="setting-alert-days" value="3" min="0"><span>日前から黄色 (Warning) で表示する</span></div>
                         </div>
                     </section>
-
                     <hr class="settings-divider"/>
-
                     <section class="settings-section" id="sec-shortcut">
-                        <div class="section-header">
-                            <span class="material-symbols-outlined icon-purple">keyboard</span>
-                            <h3>ショートカット設定</h3>
-                        </div>
-                        <p class="section-desc">キーの文字をクリックしてから、割り当てたいキーを押してください。</p>
-                        
+                        <div class="section-header"><span class="material-symbols-outlined icon-purple">keyboard</span><h3>ショートカット設定</h3></div>
                         <div class="shortcut-list">
-                            <div class="shortcut-row">
-                                <div class="sc-label">
-                                    <span class="material-symbols-outlined icon-sm">rocket_launch</span>
-                                    <span>今日の実行へ</span>
-                                </div>
-                                <button id="key-btn-focus" class="kbd-key">F</button>
-                            </div>
-                            <div class="shortcut-row">
-                                <div class="sc-label">
-                                    <span class="material-symbols-outlined icon-sm">dashboard</span>
-                                    <span>ボードへ戻る</span>
-                                </div>
-                                <button id="key-btn-board" class="kbd-key">B</button>
-                            </div>
-                            <div class="shortcut-row">
-                                <div class="sc-label">
-                                    <span class="material-symbols-outlined icon-sm">inventory_2</span>
-                                    <span>アーカイブへ</span>
-                                </div>
-                                <button id="key-btn-archive" class="kbd-key">A</button>
-                            </div>
-                            <div class="shortcut-row">
-                                <div class="sc-label">
-                                    <span class="material-symbols-outlined icon-sm">search</span>
-                                    <span>検索</span>
-                                </div>
-                                <button id="key-btn-search" class="kbd-key">/</button>
-                            </div>
+                            <div class="shortcut-row"><div class="sc-label">今日の実行へ</div><button id="key-btn-focus" class="kbd-key">F</button></div>
+                            <div class="shortcut-row"><div class="sc-label">ボードへ戻る</div><button id="key-btn-board" class="kbd-key">B</button></div>
+                            <div class="shortcut-row"><div class="sc-label">アーカイブへ</div><button id="key-btn-archive" class="kbd-key">A</button></div>
+                            <div class="shortcut-row"><div class="sc-label">検索</div><button id="key-btn-search" class="kbd-key">/</button></div>
                         </div>
                     </section>
                     <div style="height: 40px;"></div>
@@ -313,122 +223,31 @@
 
     <div class="modal-overlay" id="modal-user-mgmt">
         <div class="modal-content user-mgmt-modal">
-            
             <div class="user-modal-header">
-                <div class="header-title-group">
-                    <span class="material-symbols-outlined header-icon">manage_accounts</span>
-                    <h3>ユーザー管理</h3>
-                </div>
-                <button class="settings-close-btn" id="btn-close-user-mgmt">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+                <div class="header-title-group"><span class="material-symbols-outlined header-icon">manage_accounts</span><h3>ユーザー管理</h3></div>
+                <button class="settings-close-btn" id="btn-close-user-mgmt"><span class="material-symbols-outlined">close</span></button>
             </div>
-
             <div class="user-modal-body">
-                
                 <div class="user-sidebar">
-                    <div class="user-search-box">
-                        <span class="material-symbols-outlined">search</span>
-                        <input type="text" id="user-search-input" placeholder="ユーザーを検索...">
-                    </div>
+                    <div class="user-search-box"><span class="material-symbols-outlined">search</span><input type="text" id="user-search-input" placeholder="ユーザーを検索..."></div>
                     <div id="user-list-v2" class="user-sidebar-list custom-scrollbar"></div>
-                    <div class="user-sidebar-footer">
-                        <button id="btn-add-new-user" class="btn-sidebar-add">
-                            <span class="material-symbols-outlined">person_add</span> 新規ユーザーを追加
-                        </button>
-                    </div>
+                    <div class="user-sidebar-footer"><button id="btn-add-new-user" class="btn-sidebar-add"><span class="material-symbols-outlined">person_add</span> 新規ユーザーを追加</button></div>
                 </div>
-
                 <div class="user-main-area">
-                    
-                    <div id="user-empty-state" class="user-empty-state">
-                        <span class="material-symbols-outlined" style="font-size: 64px; color: #cbd5e1;">person_search</span>
-                        <p>左側から編集したいユーザーを選択してください</p>
-                    </div>
-
+                    <div id="user-empty-state" class="user-empty-state"><span class="material-symbols-outlined" style="font-size: 64px; color: #cbd5e1;">person_search</span><p>左側から編集したいユーザーを選択してください</p></div>
                     <div id="user-detail-content" style="display: none; height: 100%; flex-direction: column;">
-                        
                         <div id="user-view-mode" style="display: flex; flex-direction: column; height: 100%;">
                             <div class="user-detail-header">
                                 <div class="user-avatar-large" id="view-avatar"></div>
-                                <div class="user-header-info">
-                                    <h2 id="view-fullname" style="margin:0; font-size:24px;">--</h2>
-                                    <div style="display:flex; gap:10px; align-items:center; margin-top:4px;">
-                                        <span class="user-id-label" id="view-id">ID: --</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:8px;">
-                                    <button class="btn-icon-danger" id="btn-delete-user" title="削除">
-                                        <span class="material-symbols-outlined">delete</span>
-                                    </button>
-                                    <button class="btn-modern-primary" id="btn-to-edit-mode">
-                                        <span class="material-symbols-outlined" style="font-size:18px;">edit</span> 編集
-                                    </button>
-                                </div>
+                                <div class="user-header-info"><h2 id="view-fullname">--</h2><span class="user-id-label" id="view-id">ID: --</span></div>
+                                <div style="display:flex; gap:8px;"><button class="btn-icon-danger" id="btn-delete-user"><span class="material-symbols-outlined">delete</span></button><button class="btn-modern-primary" id="btn-to-edit-mode"><span class="material-symbols-outlined" style="font-size:18px;">edit</span> 編集</button></div>
                             </div>
-
-                            <div class="user-form-scroll custom-scrollbar">
-                                <div class="view-grid">
-                                    <div class="view-item">
-                                        <span class="view-label">メールアドレス</span>
-                                        <span class="view-value" id="view-email">--</span>
-                                    </div>
-                                    <div class="view-item">
-                                        <span class="view-label">部署 / 役職</span>
-                                        <span class="view-value" id="view-dept-job">--</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="user-form-scroll custom-scrollbar"><div class="view-grid"><div class="view-item"><span class="view-label">メールアドレス</span><span class="view-value" id="view-email">--</span></div><div class="view-item"><span class="view-label">部署 / 役職</span><span class="view-value" id="view-dept-job">--</span></div></div></div>
                         </div>
-
                         <div id="user-edit-mode" style="display: none; flex-direction: column; height: 100%;">
-                            <div class="user-form-scroll custom-scrollbar">
-                                <div class="form-section-title">
-                                    <span class="material-symbols-outlined">edit_note</span> ユーザー情報の編集
-                                </div>
-                                <div class="user-form-grid">
-                                    <div class="form-group-u full-width">
-                                        <label>アイコンカラー</label>
-                                        <div class="color-picker-wrapper">
-                                            <div class="color-picker-btn" id="edit-user-color-btn" style="width:100%; height:38px; border-radius:6px;"></div>
-                                            <div class="color-picker-popover" id="edit-user-color-popover">
-                                                <div class="color-grid" id="edit-user-color-grid"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group-u">
-                                        <label>姓 (Last Name)</label>
-                                        <input type="text" id="input-lastname" class="input-modern">
-                                    </div>
-                                    <div class="form-group-u">
-                                        <label>名 (First Name)</label>
-                                        <input type="text" id="input-firstname" class="input-modern">
-                                    </div>
-                                    <div class="form-group-u full-width">
-                                        <label>メールアドレス</label>
-                                        <div class="input-icon-wrapper">
-                                            <span class="material-symbols-outlined">mail</span>
-                                            <input type="email" id="input-email" class="input-modern pl-icon">
-                                        </div>
-                                    </div>
-                                    <div class="form-group-u">
-                                        <label>部署</label>
-                                        <input type="text" id="input-dept" class="input-modern">
-                                    </div>
-                                    <div class="form-group-u">
-                                        <label>役職</label>
-                                        <input type="text" id="input-job" class="input-modern">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="user-detail-footer">
-                                <button class="btn-modern-secondary" id="btn-cancel-edit">キャンセル</button>
-                                <button class="btn-modern-primary" id="btn-save-user">
-                                    <span class="material-symbols-outlined" style="font-size:18px;">save</span> 保存
-                                </button>
-                            </div>
+                            <div class="user-form-scroll custom-scrollbar"><div class="form-section-title"><span class="material-symbols-outlined">edit_note</span> 編集</div><div class="user-form-grid"><div class="form-group-u full-width"><label>色</label><div class="color-picker-wrapper"><div class="color-picker-btn" id="edit-user-color-btn" style="width:100%; height:38px;"></div><div class="color-picker-popover" id="edit-user-color-popover"><div class="color-grid" id="edit-user-color-grid"></div></div></div></div><div class="form-group-u"><label>姓</label><input type="text" id="input-lastname" class="input-modern"></div><div class="form-group-u"><label>名</label><input type="text" id="input-firstname" class="input-modern"></div><div class="form-group-u full-width"><label>Email</label><input type="email" id="input-email" class="input-modern"></div><div class="form-group-u"><label>部署</label><input type="text" id="input-dept" class="input-modern"></div><div class="form-group-u"><label>役職</label><input type="text" id="input-job" class="input-modern"></div></div></div>
+                            <div class="user-detail-footer"><button class="btn-modern-secondary" id="btn-cancel-edit">キャンセル</button><button class="btn-modern-primary" id="btn-save-user">保存</button></div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -437,153 +256,56 @@
     
     <div class="modal-overlay" id="modal-global-tags">
         <div class="modal-content tag-mgmt-modal">
-            
-            <div class="tag-modal-header">
-                <div class="header-title-group">
-                    <span class="material-symbols-outlined header-icon">label</span>
-                    <h3>共通タグ管理</h3>
-                </div>
-                <button class="settings-close-btn" id="btn-close-tag-mgmt">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            
+            <div class="tag-modal-header"><div class="header-title-group"><span class="material-symbols-outlined header-icon">label</span><h3>共通タグ管理</h3></div><button class="settings-close-btn" id="btn-close-tag-mgmt"><span class="material-symbols-outlined">close</span></button></div>
             <div class="tag-modal-body">
-                
                 <div class="tag-sidebar">
-                    <div class="sidebar-header">
-                        <span class="material-symbols-outlined">folder_open</span> グループ一覧
-                    </div>
-                    
-                    <div id="tag-group-list" class="sidebar-list custom-scrollbar">
-                        </div>
-
-                    <div class="sidebar-footer">
-                        <div class="input-group-simple">
-                            <input type="text" id="new-group-name" placeholder="新しいグループ名">
-                            <button id="btn-add-group"><span class="material-symbols-outlined">add</span></button>
-                        </div>
-                    </div>
+                    <div class="sidebar-header"><span class="material-symbols-outlined">folder_open</span> グループ一覧</div>
+                    <div id="tag-group-list" class="sidebar-list custom-scrollbar"></div>
+                    <div class="sidebar-footer"><div class="input-group-simple"><input type="text" id="new-group-name" placeholder="新しいグループ名"><button id="btn-add-group"><span class="material-symbols-outlined">add</span></button></div></div>
                 </div>
-
                 <div class="tag-main-area">
-                    
-                    <div id="tag-empty-state" class="empty-state-container">
-                        <div class="empty-state-illustration">
-                            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2" style="width:100%; height:100%; opacity:0.5;">
-                                <path d="M20 30h60v50H20z" rx="4"></path>
-                                <path d="M20 45h60"></path>
-                                <circle cx="35" cy="38" r="2" fill="currentColor"></circle>
-                                <circle cx="45" cy="38" r="2" fill="currentColor"></circle>
-                                <rect x="25" y="55" width="20" height="4" rx="2" fill="currentColor" opacity="0.6"></rect>
-                                <rect x="25" y="65" width="35" height="4" rx="2" fill="currentColor" opacity="0.6"></rect>
-                                <g transform="translate(60, 60) rotate(-15)">
-                                    <path d="M0 10 L10 0 L30 0 L30 20 L10 20 Z" fill="#3B82F6" stroke="none" opacity="0.8"></path>
-                                    <circle cx="8" cy="10" r="2" fill="white"></circle>
-                                </g>
-                            </svg>
-                        </div>
-                        <h3 class="empty-msg-title">左側からグループを選択してください</h3>
-                        <p class="empty-msg-desc">グループを選択すると、登録されているタグの編集や並び替えができます。</p>
-                    </div>
-
+                    <div id="tag-empty-state" class="empty-state-container"><h3 class="empty-msg-title">グループを選択</h3></div>
                     <div id="tag-content-area" style="display: none; height: 100%; flex-direction: column;">
-                        <div class="content-header">
-                            <h2 id="current-group-name">グループ名</h2>
-                            <span class="header-desc">のタグ一覧</span>
-                        </div>
-
-                        <div id="tag-list-container" class="tag-list-grid custom-scrollbar">
-                            </div>
-
-                        <div class="tag-add-footer">
-                            <div class="tag-add-row">
-                                <div class="color-picker-wrapper">
-                                    <div class="color-picker-btn" id="new-tag-color-btn" style="background:#10B981;"></div>
-                                    <div class="color-picker-popover" id="new-tag-color-popover">
-                                        <div class="color-grid" id="new-tag-color-grid"></div>
-                                    </div>
-                                </div>
-                                <input type="text" class="form-control" id="new-tag-name" placeholder="新しいタグ名 (例: A社, 至急...)">
-                                <button class="btn btn-primary" id="btn-add-global-tag">追加</button>
-                            </div>
-                        </div>
+                        <div class="content-header"><h2 id="current-group-name">--</h2></div>
+                        <div id="tag-list-container" class="tag-list-grid custom-scrollbar"></div>
+                        <div class="tag-add-footer"><div class="tag-add-row"><div class="color-picker-wrapper"><div class="color-picker-btn" id="new-tag-color-btn" style="background:#10B981;"></div><div class="color-picker-popover" id="new-tag-color-popover"><div class="color-grid" id="new-tag-color-grid"></div></div></div><input type="text" class="form-control" id="new-tag-name" placeholder="タグ名"><button class="btn btn-primary" id="btn-add-global-tag">追加</button></div></div>
                     </div>
-
                 </div>
             </div>
-            
-            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" id="modal-card-edit">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">タスク詳細</h3>
-            </div>
-
+            <div class="modal-header"><h3 class="modal-title">タスク詳細</h3></div>
             <div class="modal-body">
                 <div id="card-view-mode">
                     <h2 id="view-card-title" style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;"></h2>
-                    <div style="margin-bottom:20px; color:#666; font-size:14px; display:flex; align-items:center; gap:5px;">
-                        <span class="material-symbols-outlined" style="font-size:16px;">calendar_today</span> 期限: <span id="view-card-date" style="font-weight:bold;"></span>
-                    </div>
+                    <div style="margin-bottom:20px; color:#666; font-size:14px; display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined" style="font-size:16px;">calendar_today</span> 期限: <span id="view-card-date" style="font-weight:bold;"></span></div>
                     <div id="view-custom-fields" style="display:flex; flex-direction:column; gap:10px;"></div>
                 </div>
-
                 <div id="card-edit-mode" style="display:none;">
-                    <div class="smart-paste-container">
-                        <label class="smart-paste-label"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">auto_fix_high</span> スマート・ペースト</label>
-                        <input type="text" class="smart-paste-input" id="smart-paste-box" placeholder="ここにGmailの件名やURLを貼り付け (Ctrl+V)">
-                    </div>
-
+                    <div class="smart-paste-container"><label class="smart-paste-label">スマート・ペースト</label><input type="text" class="smart-paste-input" id="smart-paste-box" placeholder="Ctrl+V"></div>
                     <div class="form-group"><label>タイトル</label><input type="text" class="form-control" id="card-title"></div>
                     <div class="form-group"><label>期限日</label><input type="date" class="form-control" id="card-date"></div>
                     <hr style="border: 0; border-top: 1px solid #dfe1e6; margin: 15px 0;">
                     <div id="dynamic-form-area"></div>
                 </div>
             </div>
-
             <div class="modal-footer">
-                <div id="footer-view-btns" style="display:flex; width:100%; justify-content:flex-end; gap:10px;">
-                    <button class="btn btn-outline" id="btn-duplicate-card" style="margin-right:auto; display:flex; align-items:center; gap:5px;">
-                        <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span> 複製
-                    </button>
-                    <button class="btn btn-outline" id="btn-enable-edit" style="display:flex; align-items:center; gap:5px;">
-                        <span class="material-symbols-outlined" style="font-size:16px;">edit</span> 編集
-                    </button>
-                    <button class="btn btn-secondary" id="view-close-btn">閉じる</button>
-                </div>
-
-                <div id="footer-edit-btns" style="display:none; width:100%; justify-content:flex-end; gap:10px;">
-                    <button class="btn btn-danger" id="card-delete-btn" style="margin-right: auto;">削除</button>
-                    <button class="btn btn-secondary" id="card-cancel-edit-btn">キャンセル</button>
-                    <button class="btn btn-primary" id="card-save-btn">保存</button>
-                </div>
+                <div id="footer-view-btns" style="display:flex; width:100%; justify-content:flex-end; gap:10px;"><button class="btn btn-outline" id="btn-duplicate-card">複製</button><button class="btn btn-outline" id="btn-enable-edit">編集</button><button class="btn btn-secondary" id="view-close-btn">閉じる</button></div>
+                <div id="footer-edit-btns" style="display:none; width:100%; justify-content:flex-end; gap:10px;"><button class="btn btn-danger" id="card-delete-btn" style="margin-right: auto;">削除</button><button class="btn btn-secondary" id="card-cancel-edit-btn">キャンセル</button><button class="btn btn-primary" id="card-save-btn">保存</button></div>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-board-settings">
-        <div class="modal-content"></div>
-    </div>
+    <div class="modal-overlay" id="modal-board-settings"><div class="modal-content"></div></div>
 
     <div class="modal-overlay" id="modal-board-reorder">
         <div class="modal-content" style="width: 400px;">
-            <div class="modal-header">
-                <h3 class="modal-title">ボードの並び替え</h3>
-                <button class="settings-close-btn" id="btn-close-reorder">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            <div class="modal-body" style="padding: 0 20px;">
-                <p style="font-size:12px; color:#666; margin-bottom:10px;">ドラッグして順序を入れ替えてください。</p>
-                <div id="board-reorder-list" class="reorder-list-container custom-scrollbar">
-                    </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="btn-save-reorder" style="width:100%;">順序を保存</button>
-            </div>
+            <div class="modal-header"><h3 class="modal-title">ボードの並び替え</h3><button class="settings-close-btn" id="btn-close-reorder"><span class="material-symbols-outlined">close</span></button></div>
+            <div class="modal-body" style="padding: 0 20px;"><p style="font-size:12px; color:#666; margin-bottom:10px;">ドラッグして順序を入れ替えてください。</p><div id="board-reorder-list" class="reorder-list-container custom-scrollbar"></div></div>
+            <div class="modal-footer"><button class="btn btn-primary" id="btn-save-reorder" style="width:100%;">順序を保存</button></div>
         </div>
     </div>
     
